@@ -254,6 +254,7 @@ void TableObject::loadEventLoaded(const uint8_t* data)
                     _data = 0;
                 }
             }
+            _memory.writeMemory();
 
             break;
 
