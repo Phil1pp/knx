@@ -58,7 +58,8 @@ void setup()
     Serial.begin(115200);
     ArduinoPlatform::SerialDebug = &Serial;
 
-    randomSeed(millis());
+    uint32_t seed = millis();
+    randomSeed(seed);
 
 #if MASK_VERSION != 0x07B0 && (defined ARDUINO_ARCH_ESP8266 || defined ARDUINO_ARCH_ESP32)
     WiFiManager wifiManager;
