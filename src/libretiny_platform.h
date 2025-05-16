@@ -31,21 +31,25 @@ class LibretinyPlatform : public ArduinoPlatform
         //unicast
         bool sendBytesUniCast(uint32_t addr, uint16_t port, uint8_t* buffer, uint16_t len) override;
 
-        // size of one EraseBlock in pages
-        virtual size_t flashEraseBlockSize();
-        // size of one flash page in bytes
-        virtual size_t flashPageSize();
-        // start of user flash aligned to start of an erase block
-        virtual uint8_t* userFlashStart();
-        // size of the user flash in EraseBlocks
-        virtual size_t userFlashSizeEraseBlocks();
-        // relativ to userFlashStart
-        virtual void flashErase(uint16_t eraseBlockNum);
-        // write a single page to flash (pageNumber relative to userFashStart
-        virtual void flashWritePage(uint16_t pageNumber, uint8_t* data);
+        //memory
+        uint8_t* getEepromBuffer(uint32_t size);
+        void commitToEeprom();
 
-        // writes _eraseblockBuffer to flash - overrides Plattform::writeBufferedEraseBlock() for performance optimization only
-        void writeBufferedEraseBlock();
+        // // size of one EraseBlock in pages
+        // virtual size_t flashEraseBlockSize();
+        // // size of one flash page in bytes
+        // virtual size_t flashPageSize();
+        // // start of user flash aligned to start of an erase block
+        // virtual uint8_t* userFlashStart();
+        // // size of the user flash in EraseBlocks
+        // virtual size_t userFlashSizeEraseBlocks();
+        // // relativ to userFlashStart
+        // virtual void flashErase(uint16_t eraseBlockNum);
+        // // write a single page to flash (pageNumber relative to userFashStart
+        // virtual void flashWritePage(uint16_t pageNumber, uint8_t* data); 
+
+        // // writes _eraseblockBuffer to flash - overrides Plattform::writeBufferedEraseBlock() for performance optimization only
+        // void writeBufferedEraseBlock();
     private:
         WiFiUDP _udp;
 };

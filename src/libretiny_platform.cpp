@@ -23,12 +23,12 @@ LibretinyPlatform::LibretinyPlatform()
     : ArduinoPlatform(&KNX_SERIAL)
 #endif
 {
-    _memoryType = Flash;
+    // _memoryType = Flash;
 }
 
 LibretinyPlatform::LibretinyPlatform( HardwareSerial* s) : ArduinoPlatform(s)
 {
-    _memoryType = Flash;
+    // _memoryType = Flash;
 }
 
 uint32_t LibretinyPlatform::currentIpAddress()
@@ -48,7 +48,7 @@ uint32_t LibretinyPlatform::currentDefaultGateway()
 
 void LibretinyPlatform::macAddress(uint8_t * addr)
 {
-    WiFi.macAddress(addr);
+    macAddress(addr);
 }
 
 uint32_t LibretinyPlatform::uniqueSerialNumber()
@@ -66,12 +66,11 @@ void LibretinyPlatform::setupMultiCast(uint32_t addr, uint16_t port)
 {
     //workaround for libretiny bug: NETIF_FLAG_IGMP is not set by default
     struct netif *netif;
-    for (netif = netif_list; netif != NULL; netif = netif->next)
-    {
-        netif->flags |= NETIF_FLAG_IGMP;
-    }
+	for (netif = netif_list; netif != NULL; netif = netif->next) {
+		netif->flags |= NETIF_FLAG_IGMP;
+	}
 
-    IPAddress mcastaddr(htonl(addr));
+    IPAddress mcastaddr(htonl(addr));    
     KNX_DEBUG_SERIAL.printf("setup multicast addr: %d.%d.%d.%d port: %d ip: %d.%d.%d.%d\n", mcastaddr[0], mcastaddr[1], mcastaddr[2], mcastaddr[3], port, WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3]);
     uint8_t result = _udp.beginMulticast(mcastaddr, port);
     KNX_DEBUG_SERIAL.printf("multicast setup result %d\n", result);
@@ -93,10 +92,9 @@ bool LibretinyPlatform::sendBytesMultiCast(uint8_t * buffer, uint16_t len)
 int LibretinyPlatform::readBytesMultiCast(uint8_t * buffer, uint16_t maxLen)
 {
     int len = _udp.parsePacket();
-
     if (len == 0)
         return 0;
-
+    
     if (len > maxLen)
     {
         KNX_DEBUG_SERIAL.printf("udp buffer to small. was %d, needed %d\n", maxLen, len);
@@ -111,63 +109,54 @@ bool LibretinyPlatform::sendBytesUniCast(uint32_t addr, uint16_t port, uint8_t* 
 {
     IPAddress ucastaddr(htonl(addr));
     println("sendBytesUniCast endPacket fail");
-
-    if(_udp.beginPacket(ucastaddr, port) == 1)
-    {
+    if(_udp.beginPacket(ucastaddr, port) == 1) {
         _udp.write(buffer, len);
-
-        if(_udp.endPacket() == 0)
-            println("sendBytesUniCast endPacket fail");
+        if(_udp.endPacket() == 0) println("sendBytesUniCast endPacket fail");
     }
-    else
-        println("sendBytesUniCast beginPacket fail");
-
+    else println("sendBytesUniCast beginPacket fail");
     return true;
 }
 
-size_t LibretinyPlatform::flashEraseBlockSize()
+uint8_t* LibretinyPlatform::getEepromBuffer(uint32_t size)
 {
-    return 16;
-}
+    if (size > KNX_FLASH_SIZE)
+    {
+        fatalError();
+    }
 
-size_t LibretinyPlatform::flashPageSize()
-{
-    return 256;
-}
-
-uint8_t* LibretinyPlatform::userFlashStart()
-{
     lt_flash_read(KNX_FLASH_OFFSET, NVS_buffer, KNX_FLASH_SIZE);
+
+    for (int i = 0; i < size; i++)
+    {
+        if (NVS_buffer[i] != 0)
+        {
+            return NVS_buffer;
+        }
+    }
+
+    memset(NVS_buffer, 0xff, size);
+
     return NVS_buffer;
 }
 
-size_t LibretinyPlatform::userFlashSizeEraseBlocks()
+void LibretinyPlatform::commitToEeprom()
 {
-    if(KNX_FLASH_SIZE <= 0)
-        return 0;
-    else
-        return ( (KNX_FLASH_SIZE - 1) / (flashPageSize() * flashEraseBlockSize())) + 1;
-}
+    println("LibretinyPlatform::commitToEeprom() ...");
 
-void LibretinyPlatform::flashErase(uint16_t eraseBlockNum)
-{
-    // 16 pages x 256byte/page = 4096byte
-    lt_flash_erase_block(KNX_FLASH_OFFSET + eraseBlockNum * flashPageSize() * flashEraseBlockSize());
-}
+    uint32_t result = -1;//lt_flash_write(KNX_FLASH_OFFSET, NVS_buffer, KNX_FLASH_SIZE);
 
-void LibretinyPlatform::flashWritePage(uint16_t pageNumber, uint8_t* data)
-{
-    lt_flash_write(KNX_FLASH_OFFSET + pageNumber * flashPageSize(), data, flashPageSize());
-}
-
-void LibretinyPlatform::writeBufferedEraseBlock()
-{
-    if(_bufferedEraseblockNumber > -1 && _bufferedEraseblockDirty)
+    if (result < 0)
     {
-        lt_flash_erase_block(KNX_FLASH_OFFSET + _bufferedEraseblockNumber * flashPageSize() * flashEraseBlockSize());
-        lt_flash_write(KNX_FLASH_OFFSET + _bufferedEraseblockNumber * flashPageSize() * flashEraseBlockSize(), _eraseblockBuffer, flashPageSize() * flashEraseBlockSize());
-        _bufferedEraseblockDirty = false;
+        print("Error writing to FLASH, result: ");
+        println(result);
     }
+    else
+    {
+        println("FLASH successfully written, result: ");
+        println(result);
+    }
+
+    delay(500);
 }
 
 #endif
